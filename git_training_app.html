@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Git/GitLab 完全制覇ハンズオン研修</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0b0f1a;--bg2:#111827;--bg3:#1e2a3a;
+  --accent:#38bdf8;--accent2:#818cf8;--success:#10b981;
+  --danger:#ef4444;--warn:#f59e0b;
+  --text:#f0f4f8;--muted:#8da0b4;
+  --card:rgba(255,255,255,.05);--border:rgba(255,255,255,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+
+/* ─── TOP PROGRESS BAR ─── */
+.sticky-progress{position:fixed;top:0;left:0;right:0;height:3px;background:rgba(255,255,255,.08);z-index:9999;}
+.sticky-progress-bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .4s ease;width:0%;}
+
+/* ─── HERO ─── */
+.hero{
+  position:relative;text-align:center;padding:70px 20px 50px;
+  background:linear-gradient(135deg,#0b0f1a 0%,#0f1e2e 50%,#0b1220 100%);
+  overflow:hidden;
+}
+.hero::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(56,189,248,.15),transparent);
+  pointer-events:none;
+}
+.hero-badge{
+  display:inline-block;background:rgba(56,189,248,.12);border:1px solid rgba(56,189,248,.3);
+  color:var(--accent);padding:4px 16px;border-radius:20px;font-size:.85rem;margin-bottom:16px;
+}
+.hero h1{font-size:clamp(1.6rem,4vw,2.8rem);font-weight:700;line-height:1.3;
+  background:linear-gradient(135deg,#f0f4f8,#38bdf8);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.hero p{color:var(--muted);margin:12px auto 0;max-width:600px;font-size:1rem;line-height:1.7;}
+.hero-stats{display:flex;justify-content:center;gap:32px;margin-top:32px;flex-wrap:wrap;}
+.stat{text-align:center;}
+.stat-num{font-size:1.8rem;font-weight:700;color:var(--accent);}
+.stat-label{font-size:.8rem;color:var(--muted);}
+
+/* ─── SEARCH BAR ─── */
+.search-bar-wrap{max-width:1100px;margin:0 auto;padding:0 20px;}
+.search-bar{
+  display:flex;align-items:center;gap:10px;
+  background:var(--bg3);border:1px solid var(--border);border-radius:10px;
+  padding:10px 16px;margin:20px 0 0;
+}
+.search-bar input{
+  flex:1;background:none;border:none;outline:none;color:var(--text);
+  font-size:.95rem;font-family:'Noto Sans JP',sans-serif;
+}
+.search-bar input::placeholder{color:var(--muted);}
+.search-bar .search-icon{color:var(--muted);font-size:1rem;}
+.search-results{
+  display:none;background:var(--bg3);border:1px solid var(--border);
+  border-radius:10px;margin-top:6px;overflow:hidden;
+}
+.search-results.visible{display:block;}
+.search-result-item{
+  padding:10px 16px;cursor:pointer;border-bottom:1px solid var(--border);
+  display:flex;align-items:flex-start;gap:10px;
+}
+.search-result-item:last-child{border-bottom:none;}
+.search-result-item:hover{background:rgba(56,189,248,.08);}
+.search-result-chap{font-size:.75rem;color:var(--accent);font-weight:700;white-space:nowrap;flex-shrink:0;padding-top:2px;}
+.search-result-text{font-size:.9rem;color:var(--text);}
+.search-result-text mark{background:rgba(56,189,248,.3);color:var(--accent);border-radius:2px;padding:0 2px;}
+
+/* ─── LAYOUT ─── */
+.layout{display:flex;max-width:1100px;margin:0 auto;padding:24px 20px 60px;}
+.sidebar{
+  width:240px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;
+  background:var(--card);border:1px solid var(--border);border-radius:12px;
+  padding:20px 0;max-height:calc(100vh - 40px);overflow-y:auto;
+}
+.sidebar-section-label{font-size:.7rem;font-weight:700;color:var(--muted);padding:12px 20px 4px;letter-spacing:.08em;text-transform:uppercase;}
+.sidebar-item{
+  display:flex;align-items:center;gap:8px;padding:9px 20px;font-size:.875rem;color:var(--muted);
+  cursor:pointer;border-left:3px solid transparent;transition:all .2s;text-decoration:none;
+}
+.sidebar-item:hover{color:var(--text);background:rgba(255,255,255,.03);}
+.sidebar-item.active{color:var(--accent);border-left-color:var(--accent);background:rgba(56,189,248,.06);}
+.sidebar-item.done{color:var(--success);}
+.sidebar-item .done-check{display:none;font-size:.8rem;}
+.sidebar-item.done .done-check{display:inline;}
+.sidebar-progress{padding:16px 20px 8px;border-top:1px solid var(--border);margin-top:8px;}
+.sidebar-progress-label{font-size:.75rem;color:var(--muted);margin-bottom:6px;display:flex;justify-content:space-between;}
+.sidebar-progress-bar-bg{background:rgba(255,255,255,.08);border-radius:4px;height:5px;}
+.sidebar-progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:4px;transition:width .4s;}
+.score-pill{
+  margin:12px 20px 0;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.25);
+  border-radius:8px;padding:8px 12px;font-size:.8rem;color:var(--success);text-align:center;
+  display:none;
+}
+.score-pill.visible{display:block;}
+
+.main{flex:1;min-width:0;padding-left:28px;}
+
+/* ─── CHAPTER CARD ─── */
+.chapter-card{
+  background:var(--card);border:1px solid var(--border);border-radius:16px;
+  padding:32px;margin-bottom:28px;display:none;
+}
+.chapter-card.visible{display:block;animation:fadeUp .4s ease both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
+
+.chapter-header{display:flex;align-items:center;gap:12px;margin-bottom:22px;}
+.chapter-num{
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#fff;font-weight:700;width:40px;height:40px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;font-size:.95rem;flex-shrink:0;
+}
+.chapter-title{font-size:1.4rem;font-weight:700;}
+.chapter-sub{font-size:.85rem;color:var(--muted);margin-top:2px;}
+
+h3{font-size:1.05rem;font-weight:700;color:var(--accent);margin:26px 0 10px;}
+h4{font-size:.975rem;font-weight:600;color:#c7d2fe;margin:18px 0 8px;}
+p,li{color:var(--muted);line-height:1.8;font-size:.95rem;}
+ul,ol{padding-left:18px;}
+li{margin-bottom:5px;}
+strong{color:var(--text);}
+code{background:rgba(56,189,248,.12);color:var(--accent);padding:1px 5px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:.9em;}
+
+/* ─── CODE BLOCKS ─── */
+.code-wrap{position:relative;margin:12px 0;}
+.copy-btn{
+  position:absolute;top:8px;right:8px;
+  background:rgba(56,189,248,.15);border:1px solid rgba(56,189,248,.3);
+  color:var(--accent);padding:3px 10px;border-radius:6px;font-size:.75rem;
+  cursor:pointer;transition:all .2s;font-family:'Noto Sans JP',sans-serif;z-index:2;
+}
+.copy-btn:hover{background:rgba(56,189,248,.25);}
+.copy-btn.copied{background:rgba(16,185,129,.2);border-color:rgba(16,185,129,.4);color:var(--success);}
+.code-wrap pre{
+  background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:10px;
+  padding:16px 16px 16px 16px;overflow-x:auto;line-height:1.7;
+  font-family:'JetBrains Mono',monospace;font-size:.875rem;color:#e2e8f0;
+}
+.cm{color:#6a7fa0;font-style:italic;}
+
+/* ─── DIAGRAM ─── */
+.diagram{
+  background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:12px;
+  padding:20px;margin:16px 0;display:flex;align-items:center;justify-content:center;
+  gap:0;flex-wrap:wrap;
+}
+.diag-box{
+  background:var(--bg3);border:1px solid var(--border);border-radius:8px;
+  padding:10px 18px;text-align:center;font-size:.82rem;min-width:100px;
+}
+.diag-box .icon{font-size:1.3rem;margin-bottom:3px;}
+.diag-box .label{color:var(--text);font-weight:600;}
+.diag-box .desc{color:var(--muted);font-size:.72rem;margin-top:2px;}
+.diag-arrow{display:flex;flex-direction:column;align-items:center;padding:0 6px;color:var(--accent);font-size:.65rem;}
+.diag-arrow::before{content:'→';font-size:1.3rem;line-height:1;}
+
+/* ─── HANDSON / NOTE / WARN ─── */
+.handson{
+  background:rgba(56,189,248,.05);border:1px solid rgba(56,189,248,.2);
+  border-radius:12px;padding:20px;margin:16px 0;
+}
+.handson-title{font-size:.9rem;font-weight:700;color:var(--accent);margin-bottom:12px;}
+.note{background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2);border-radius:8px;padding:12px 16px;margin:12px 0;}
+.note p{color:#6ee7b7;font-size:.9rem;}
+.warn{background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:8px;padding:12px 16px;margin:12px 0;}
+.warn p{color:#fcd34d;font-size:.9rem;}
+.step-list{padding-left:0;list-style:none;counter-reset:step;}
+.step-list li{counter-increment:step;display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;color:var(--muted);}
+.step-list li::before{
+  content:counter(step);flex-shrink:0;width:22px;height:22px;
+  background:var(--accent);color:#fff;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;margin-top:2px;
+}
+
+/* ─── QUIZ ─── */
+.quiz-section{margin-top:28px;padding-top:24px;border-top:1px solid var(--border);display:none;}
+.quiz-section.visible{display:block;}
+.quiz-label{font-size:.72rem;font-weight:700;letter-spacing:.1em;color:var(--warn);text-transform:uppercase;margin-bottom:6px;}
+.quiz-q{font-size:1rem;font-weight:600;color:var(--text);margin-bottom:14px;line-height:1.6;}
+.options{display:flex;flex-direction:column;gap:8px;margin-bottom:10px;}
+.opt{
+  background:var(--bg3);border:1px solid var(--border);border-radius:8px;
+  padding:10px 14px;text-align:left;font-size:.9rem;color:var(--muted);
+  cursor:pointer;transition:all .2s;font-family:'Noto Sans JP',sans-serif;
+}
+.opt:hover:not(:disabled){border-color:var(--accent);color:var(--text);}
+.opt.correct{background:rgba(16,185,129,.12);border-color:var(--success);color:var(--success);}
+.opt.wrong{background:rgba(239,68,68,.12);border-color:var(--danger);color:var(--danger);}
+.opt:disabled{cursor:default;}
+.feedback-box{min-height:0;border-radius:8px;padding:0;transition:all .3s;font-size:.9rem;}
+.feedback-box.ok{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);color:#6ee7b7;padding:10px 14px;margin-bottom:10px;}
+.feedback-box.ng{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#fca5a5;padding:10px 14px;margin-bottom:10px;}
+
+.btn-primary{
+  background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;
+  padding:11px 28px;border-radius:10px;font-size:.95rem;font-weight:700;cursor:pointer;
+  transition:transform .15s,opacity .15s;font-family:'Noto Sans JP',sans-serif;margin-top:20px;
+}
+.btn-primary:hover{transform:translateY(-1px);opacity:.9;}
+.btn-next{
+  background:rgba(56,189,248,.12);border:1px solid rgba(56,189,248,.35);color:var(--accent);
+  padding:10px 22px;border-radius:10px;font-size:.9rem;font-weight:700;cursor:pointer;
+  transition:all .2s;font-family:'Noto Sans JP',sans-serif;display:none;margin-top:12px;
+}
+.btn-next:hover{background:rgba(56,189,248,.22);}
+
+/* ─── MEMO ─── */
+.memo-section{margin-top:20px;padding-top:16px;border-top:1px solid var(--border);}
+.memo-toggle{
+  background:none;border:1px solid var(--border);color:var(--muted);
+  padding:6px 14px;border-radius:8px;font-size:.82rem;cursor:pointer;
+  font-family:'Noto Sans JP',sans-serif;transition:all .2s;
+}
+.memo-toggle:hover{border-color:var(--accent2);color:var(--accent2);}
+.memo-body{display:none;margin-top:10px;}
+.memo-body.visible{display:block;}
+.memo-textarea{
+  width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);
+  border-radius:8px;padding:10px 14px;font-size:.875rem;font-family:'Noto Sans JP',sans-serif;
+  line-height:1.6;resize:vertical;min-height:80px;outline:none;transition:border-color .2s;
+}
+.memo-textarea:focus{border-color:var(--accent2);}
+.memo-save-btn{
+  background:rgba(129,140,248,.15);border:1px solid rgba(129,140,248,.3);color:var(--accent2);
+  padding:5px 14px;border-radius:7px;font-size:.8rem;cursor:pointer;
+  font-family:'Noto Sans JP',sans-serif;margin-top:6px;transition:all .2s;
+}
+.memo-save-btn:hover{background:rgba(129,140,248,.25);}
+.memo-saved-msg{font-size:.75rem;color:var(--success);margin-left:8px;opacity:0;transition:opacity .3s;}
+
+/* ─── CHEATSHEET ─── */
+.cheat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:16px;}
+.cheat-card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:16px;}
+.cheat-card-title{font-size:.8rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;}
+.cheat-row{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;font-size:.875rem;}
+.cheat-cmd{font-family:'JetBrains Mono',monospace;color:#e2e8f0;flex-shrink:0;background:rgba(0,0,0,.3);padding:2px 7px;border-radius:4px;font-size:.8rem;}
+.cheat-desc{color:var(--muted);font-size:.82rem;line-height:1.5;}
+.print-btn{
+  background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);color:var(--warn);
+  padding:9px 20px;border-radius:9px;font-size:.875rem;font-weight:700;cursor:pointer;
+  transition:all .2s;font-family:'Noto Sans JP',sans-serif;margin-top:20px;
+}
+.print-btn:hover{background:rgba(245,158,11,.22);}
+
+/* ─── COMPLETE ─── */
+.complete-screen{text-align:center;padding:24px 0;}
+.trophy{font-size:4rem;animation:bounce 1s ease infinite alternate;}
+@keyframes bounce{from{transform:translateY(0);}to{transform:translateY(-10px);}}
+.complete-screen h2{font-size:1.8rem;font-weight:700;margin-top:16px;}
+.complete-grid{display:flex;flex-wrap:wrap;justify-content:center;gap:14px;margin-top:28px;}
+.complete-card{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:14px 20px;text-align:center;}
+.complete-card .icon{font-size:1.6rem;}
+.complete-card .label{font-weight:700;margin-top:5px;font-size:.875rem;}
+.restart-btn{
+  background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;
+  padding:11px 28px;border-radius:10px;font-size:.95rem;font-weight:700;cursor:pointer;
+  transition:transform .15s;font-family:'Noto Sans JP',sans-serif;margin-top:24px;
+}
+.restart-btn:hover{transform:translateY(-2px);}
+
+/* ─── MOBILE ─── */
+@media(max-width:768px){
+  .layout{flex-direction:column;padding:16px;}
+  .sidebar{width:100%;position:static;max-height:none;margin-bottom:16px;overflow-x:auto;}
+  .main{padding-left:0;}
+  .chapter-card{padding:20px 16px;}
+  .hero-stats{gap:20px;}
+  .cheat-grid{grid-template-columns:1fr;}
+}
+
+/* ─── PRINT ─── */
+@media print{
+  .sticky-progress,.sidebar,.hero,.search-bar-wrap,.quiz-section,.handson,
+  .btn-primary,.btn-next,.memo-section,.print-btn,.copy-btn{display:none!important;}
+  .layout{display:block;padding:0;}
+  .main{padding:0;}
+  .chapter-card{display:block!important;border:none;padding:16px 0;page-break-inside:avoid;}
+  body{background:#fff;color:#000;}
+  .code-wrap pre{background:#f5f5f5;color:#000;border:1px solid #ddd;}
+  h3{color:#0369a1;}
+  .muted,.cm{color:#666;}
+}
+</style>
+</head>
+<body>
+
+<div class="sticky-progress"><div class="sticky-progress-bar" id="topBar"></div></div>
+
+<!-- ─── HERO ─── -->
+<div class="hero">
+  <div class="hero-badge">🏢 社内向けGit/GitLab研修</div>
+  <h1>Git / GitLab<br>完全制覇ハンズオン</h1>
+  <p>コマンドを実際に打ちながら学ぶ実践型トレーニング。<br>初心者でも1日で「明日から使える」レベルに！</p>
+  <div class="hero-stats">
+    <div class="stat"><div class="stat-num">8</div><div class="stat-label">チャプター</div></div>
+    <div class="stat"><div class="stat-num" id="statQuiz">12</div><div class="stat-label">クイズ問題</div></div>
+    <div class="stat"><div class="stat-num" id="statScore">—</div><div class="stat-label">正解率</div></div>
+    <div class="stat"><div class="stat-num" id="statProgress">0%</div><div class="stat-label">進捗</div></div>
+  </div>
+</div>
+
+<!-- ─── SEARCH ─── -->
+<div class="search-bar-wrap">
+  <div class="search-bar">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="searchInput" placeholder="コマンドやキーワードで検索（例：push、コンフリクト）..." autocomplete="off">
+  </div>
+  <div class="search-results" id="searchResults"></div>
+</div>
+
+<!-- ─── LAYOUT ─── -->
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-section-label">基礎</div>
+    <a class="sidebar-item active" data-chid="ch0" href="javascript:void(0)"><span>📖</span><span>はじめに・基本用語</span><span class="done-check">✓</span></a>
+    <a class="sidebar-item" data-chid="ch1" href="javascript:void(0)"><span>⚙️</span><span>Step 0：環境構築</span><span class="done-check">✓</span></a>
+    <a class="sidebar-item" data-chid="ch_new" href="javascript:void(0)"><span>🚀</span><span>Step 0.5：新規プロジェクト</span><span class="done-check">✓</span></a>
+    <div class="sidebar-section-label">実践</div>
+    <a class="sidebar-item" data-chid="ch2" href="javascript:void(0)"><span>💾</span><span>Step 1：保存と共有</span><span class="done-check">✓</span></a>
+    <a class="sidebar-item" data-chid="ch3" href="javascript:void(0)"><span>🤝</span><span>Step 2：チーム開発</span><span class="done-check">✓</span></a>
+    <a class="sidebar-item" data-chid="ch4" href="javascript:void(0)"><span>🔄</span><span>Step 3：毎日のルーティン</span><span class="done-check">✓</span></a>
+    <a class="sidebar-item" data-chid="ch5" href="javascript:void(0)"><span>📂</span><span>Step 4：複数案件管理</span><span class="done-check">✓</span></a>
+    <div class="sidebar-section-label">応用</div>
+    <a class="sidebar-item" data-chid="ch6" href="javascript:void(0)"><span>🛡️</span><span>Step 5：トラブル対処</span><span class="done-check">✓</span></a>
+    <a class="sidebar-item" data-chid="ch7" href="javascript:void(0)"><span>📋</span><span>チートシート</span><span class="done-check">✓</span></a>
+    <div class="sidebar-progress">
+      <div class="sidebar-progress-label"><span>進捗</span><span id="sidebarPct">0 / 8</span></div>
+      <div class="sidebar-progress-bar-bg"><div class="sidebar-progress-bar-fill" id="sidebarFill" style="width:0%"></div></div>
+    </div>
+    <div class="score-pill" id="scorePill">🎯 クイズ正解率: <strong id="scorePillVal">—</strong></div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- ─── CH 0: はじめに ─── -->
+    <div class="chapter-card visible" id="ch0">
+      <div class="chapter-header">
+        <div class="chapter-num">📖</div>
+        <div><div class="chapter-title">はじめに &amp; 基本用語</div>
+        <div class="chapter-sub">Gitが何をするツールなのかをまず理解しよう</div></div>
+      </div>
+
+      <h3>🤔 Gitって何？</h3>
+      <p>ファイルの<strong>「変更履歴」を全て記録してくれるタイムマシン</strong>のようなツールです。「いつ・誰が・どこを変更したか」が全てわかり、間違えてもいつでも過去の状態に戻せます。</p>
+
+      <h3>🌐 GitHubとGitLabの違い</h3>
+      <p>どちらも「Gitのデータをサーバー上で共有するサービス」ですが、用途が異なります。</p>
+      <ul>
+        <li><strong>GitHub</strong>：世界で一番有名。主にインターネット上のクラウドで使います。</li>
+        <li><strong>GitLab</strong>：会社のネットワーク内（イントラ）に設置して<strong>「社内専用のGitHub」</strong>として使えます。ソースコードを社外に出せない企業で多く採用されています。</li>
+      </ul>
+      <div class="note"><p>💡 GitLabでは「プルリクエスト」のことを<strong>「マージリクエスト（MR）」</strong>と呼びます。機能は同じです。</p></div>
+
+      <h3>📦 Gitの仕組み（3つの場所）</h3>
+      <div class="diagram">
+        <div class="diag-box"><div class="icon">💻</div><div class="label">作業場所</div><div class="desc">ワーキングツリー</div></div>
+        <div class="diag-arrow"></div>
+        <div class="diag-box"><div class="icon">🗄️</div><div class="label">ローカル</div><div class="desc">自分のPC内の金庫</div></div>
+        <div class="diag-arrow"></div>
+        <div class="diag-box"><div class="icon">☁️</div><div class="label">リモート</div><div class="desc">GitLab上の金庫</div></div>
+      </div>
+
+      <h3>📖 必須の基本用語 7選</h3>
+      <ol>
+        <li><strong>リポジトリ</strong>：ファイルや変更履歴を保存しておく「金庫」</li>
+        <li><strong>クローン (clone)</strong>：サーバーの金庫を自分のPCに丸ごとコピー（参加初日に1回だけ）</li>
+        <li><strong>コミット (commit)</strong>：変更を記録して「セーブポイント」を作ること</li>
+        <li><strong>プッシュ (push)</strong>：PCのセーブデータをサーバーへアップロード</li>
+        <li><strong>プル (pull)</strong>：サーバーの最新データをPCにダウンロード</li>
+        <li><strong>ブランチ (branch)</strong>：メインの歴史から枝分かれした「自分専用の作業空間」</li>
+        <li><strong>マージリクエスト (MR)</strong>：「メインに合流させていいですか？」とチームに申請すること</li>
+      </ol>
+
+      <div class="quiz-section" id="q0">
+        <div class="quiz-label">確認クイズ ① 4択</div>
+        <div class="quiz-q">「自分のPCで変更をセーブ（記録）する」操作はどれ？</div>
+        <div class="options" data-fb="fb0">
+          <button class="opt" data-correct="false">git push</button>
+          <button class="opt" data-correct="false">git pull</button>
+          <button class="opt" data-correct="true">git commit</button>
+          <button class="opt" data-correct="false">git clone</button>
+        </div>
+        <div class="feedback-box" id="fb0"></div>
+
+        <div class="quiz-label" style="margin-top:20px;">確認クイズ ② ○×問題</div>
+        <div class="quiz-q">GitLabはインターネット上でしか使えない。</div>
+        <div class="options" data-fb="fb0b">
+          <button class="opt" data-correct="false">○（正しい）</button>
+          <button class="opt" data-correct="true">×（間違い）</button>
+        </div>
+        <div class="feedback-box" id="fb0b"></div>
+        <button class="btn-next" id="next0">次へ：Step 0 環境構築 →</button>
+      </div>
+      <button class="btn-primary" id="show0">クイズに挑戦する！</button>
+
+      <div class="memo-section">
+        <button class="memo-toggle" data-chid="ch0">📝 メモを残す</button>
+        <div class="memo-body" id="memo_ch0">
+          <textarea class="memo-textarea" id="memoText_ch0" placeholder="このチャプターのメモを自由に書けます..."></textarea>
+          <button class="memo-save-btn" data-chid="ch0">保存</button>
+          <span class="memo-saved-msg" id="memoSaved_ch0">保存しました ✓</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── CH 1: 環境構築 ─── -->
+    <div class="chapter-card" id="ch1">
+      <div class="chapter-header">
+        <div class="chapter-num">0</div>
+        <div><div class="chapter-title">環境構築（インストールと初期設定）</div>
+        <div class="chapter-sub">プロキシ環境対応。一度やれば二度とやらなくてOK！</div></div>
+      </div>
+
+      <h3>🖥️ Gitのインストール</h3>
+      <ol>
+        <li>共有フォルダの <code>Git for Windows</code> インストーラーを実行する</li>
+        <li>デフォルト設定のまま「Next」→「Install」でOK</li>
+        <li>インストール後、スタートメニューから <strong>「Git Bash」</strong> を開く</li>
+      </ol>
+
+      <h3>⚙️ 初期設定（必須）</h3>
+      <p>誰がコミットした履歴か分かるように名前とメールアドレスを設定します。</p>
+      <div class="code-wrap">
+        <button class="copy-btn">コピー</button>
+        <pre>git config --global user.name "あなたの名前（例: Taro Yamada）"
+git config --global user.email "社内のメールアドレス"</pre>
+      </div>
+
+      <h3>🔌 プロキシ設定（社内ネットワーク経由の場合のみ）</h3>
+      <div class="code-wrap">
+        <button class="copy-btn">コピー</button>
+        <pre><span class="cm"># 社内プロキシが必要な環境のみ実行してください</span>
+git config --global http.proxy http://社内プロキシのURL:ポート番号
+git config --global https.proxy http://社内プロキシのURL:ポート番号</pre>
+      </div>
+      <div class="note"><p>💡 設定が正しいか確認するには <code>git config --list</code> を実行すると全設定が表示されます。</p></div>
+
+      <div class="quiz-section" id="q1">
+        <div class="quiz-label">確認クイズ ③</div>
+        <div class="quiz-q">GitのユーザーIDとして設定するべき情報の組み合わせはどれ？</div>
+        <div class="options" data-fb="fb1">
+          <button class="opt" data-correct="false">Gitのバージョン番号とOSの種類</button>
+          <button class="opt" data-correct="true">自分の名前（user.name）と社内メールアドレス（user.email）</button>
+          <button class="opt" data-correct="false">GitLabのログインIDとリポジトリ名</button>
+        </div>
+        <div class="feedback-box" id="fb1"></div>
+        <button class="btn-next" id="next1">次へ：Step 0.5 新規プロジェクト →</button>
+      </div>
+      <button class="btn-primary" id="show1">クイズに挑戦する！</button>
+
+      <div class="memo-section">
+        <button class="memo-toggle" data-chid="ch1">📝 メモを残す</button>
+        <div class="memo-body" id="memo_ch1">
+          <textarea class="memo-textarea" id="memoText_ch1" placeholder="プロキシURLなど環境情報をメモしておくと便利です..."></textarea>
+          <button class="memo-save-btn" data-chid="ch1">保存</button>
+          <span class="memo-saved-msg" id="memoSaved_ch1">保存しました ✓</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── CH NEW: 新規プロジェクト ─── -->
+    <div class="chapter-card" id="ch_new">
+      <div class="chapter-header">
+        <div class="chapter-num">🚀</div>
+        <div><div class="chapter-title">新規プロジェクトの立ち上げ</div>
+        <div class="chapter-sub">git init + GitLab連携。「ゼロから始める」パターン</div></div>
+      </div>
+
+      <h3>📁 既存フォルダをGitリポジトリにする</h3>
+      <div class="code-wrap">
+        <button class="copy-btn">コピー</button>
+        <pre><span class="cm"># プロジェクトフォルダに移動</span>
+cd C:\Users\自分の名前\Documents\my_project
+
+<span class="cm"># このフォルダをGit管理下に置く（1回だけ実行）</span>
+git init
+
+<span class="cm"># Gitが管理を開始したか確認</span>
+git status</pre>
+      </div>
+
+      <h3>🔗 GitLabのリポジトリと接続する</h3>
+      <ol>
+        <li>ブラウザでGitLabを開き「New Project」→「Create blank project」を作成する</li>
+        <li><strong>「Initialize repository with a README」のチェックは外す</strong>（理由は下記）</li>
+        <li>作成後に表示されるURLをコピーする</li>
+      </ol>
+      <div class="code-wrap">
+        <button class="copy-btn">コピー</button>
+        <pre><span class="cm"># GitLabのリポジトリと接続（URLは自分のものに変えること）</span>
+git remote add origin http://gitlab.your-company.local/yamada/my_project.git
+
+<span class="cm"># メインブランチ名をmainに統一</span>
+git branch -M main
+
+<span class="cm"># 初回プッシュ（-uをつけると次回から git push だけでOKになる）</span>
+git push -u origin main</pre>
+      </div>
+      <div class="warn"><p>⚠️ GitLabで「Initialize with README」にチェックを入れると、リモートに最初のコミットが生まれます。ローカルと歴史がズレてpushが失敗するので注意！</p></div>
+
+      <div class="quiz-section" id="q_new">
+        <div class="quiz-label">確認クイズ（新規プロジェクト編）</div>
+        <div class="quiz-q">既存フォルダをGitで管理し始める際に最初に実行するコマンドは？</div>
+        <div class="options" data-fb="fb_new">
+          <button class="opt" data-correct="false">git clone</button>
+          <button class="opt" data-correct="true">git init</button>
+          <button class="opt" data-correct="false">git remote add</button>
+        </div>
+        <div class="feedback-box" id="fb_new"></div>
+
+        <div class="quiz-label" style="margin-top:20px;">○×問題</div>
+        <div class="quiz-q">GitLabで新規リポジトリを作る際「Initialize repository with a README」にチェックを入れると最初のpushが失敗しやすい。</div>
+        <div class="options" data-fb="fb_new2">
+          <button class="opt" data-correct="true">○（正しい）</button>
+          <button class="opt" data-correct="false">×（間違い）</button>
+        </div>
+        <div class="feedback-box" id="fb_new2"></div>
+        <button class="btn-next" id="next_new">次へ：Step 1 保存と共有 →</button>
+      </div>
+      <button class="btn-primary" id="show_new">クイズに挑戦する！</button>
+
+      <div class="memo-section">
+        <button class="memo-toggle" data-chid="ch_new">📝 メモを残す</button>
+        <div class="memo-body" id="memo_ch_new">
+          <textarea class="memo-textarea" id="memoText_ch_new" placeholder="自分のプロジェクトのGitLab URLなどをメモ..."></textarea>
+          <button class="memo-save-btn" data-chid="ch_new">保存</button>
+          <span class="memo-saved-msg" id="memoSaved_ch_new">保存しました ✓</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── CH 2: 保存と共有 ─── -->
+    <div class="chapter-card" id="ch2">
+      <div class="chapter-header">
+        <div class="chapter-num">1</div>
+        <div><div class="chapter-title">保存と共有（clone / add / commit / push）</div>
+        <div class="chapter-sub">Git操作の基本中の基本。この4つを制覇しよう！</div></div>
+      </div>
+
+      <h3>📥 リポジトリをPCに持ってくる（clone）</h3>
+      <p>参加初日に1回だけ実行します。それ以降は <code>git pull</code> で最新化します。</p>
+      <div class="code-wrap">
+        <button class="copy-btn">コピー</button>
+        <pre><span class="cm"># 練習用リポジトリをクローン</span>
+git clone http://gitlab.your-company.local/training/handson.git
+
+<span class="cm"># クローンしたフォルダに移動</span>
+cd handson</pre>
+      </div>
+
+      <h3>💾 変更をセーブして送信する（add / commit / push）</h3>
+      <div class="diagram">
+        <div class="diag-box"><div class="icon">✏️</div><div class="label">ファイル編集</div><div class="desc">ワーキングツリー</div></div>
+        <div class="diag-arrow"></div>
+        <div class="diag-box"><div class="icon">🛒</div><div class="label">git add</div><div class="desc">ステージング</div></div>
+        <div class="diag-arrow"></div>
+        <div class="diag-box"><div class="icon">💾</div><div class="label">git commit</div><div class="desc">ローカル保存</div></div>
+        <div class="diag-arrow"></div>
+        <div class="diag-box"><div class="icon">☁️</div><div class="label">git push</div><div class="desc">GitLabへ送信</div></div>
+      </div>
+
+      <div class="handson">
+        <div class="handson-title">💻 ハンズオン：はじめてのコミット＆プッシュ</div>
+        <ol class="step-list">
+          <li><code>hello_自分の名前.txt</code> というファイルを作成し、自己紹介を書いて保存する</li>
+          <li>以下のコマンドを順番に実行する</li>
+        </ol>
+        <div class="code-wrap">
+          <button class="copy-btn">コピー</button>
+          <pre><span class="cm"># 全ての変更をカートに入れる</span>
+git add .
+
+<span class="cm"># 内容を確認してからセーブ（コミット）</span>
+git commit -m "自己紹介ファイルを追加"
+
+<span class="cm"># GitLabへ送信（アップロード）</span>
+git push origin main</pre>
+        </div>
+        <ol class="step-list" style="margin-top:8px;">
+          <li>GitLabのブラウザ画面でファイルが表示されたら成功！</li>
+        </ol>
+      </div>
+      <div class="note"><p>💡 <code>git status</code> を打つと「今どんな状態か」がいつでも確認できます。迷ったらまずこれ！</p></div>
+
+      <div class="quiz-section" id="q2">
+        <div class="quiz-label">確認クイズ ④</div>
+        <div class="quiz-q">ファイルを修正してからGitLabに反映させるまでの正しい順番は？</div>
+        <div class="options" data-fb="fb2">
+          <button class="opt" data-correct="false">commit → add → push</button>
+          <button class="opt" data-correct="false">push → add → commit</button>
+          <button class="opt" data-correct="true">add → commit → push</button>
+          <button class="opt" data-correct="false">add → push → commit</button>
+        </div>
+        <div class="feedback-box" id="fb2"></div>
+
+        <div class="quiz-label" style="margin-top:20px;">確認クイズ ⑤ ○×問題</div>
+        <div class="quiz-q">git clone は毎日作業を始めるたびに実行する必要がある。</div>
+        <div class="options" data-fb="fb2b">
+          <button class="opt" data-correct="false">○（正しい）</button>
+          <button class="opt" data-correct="true">×（間違い）</button>
+        </div>
+        <div class="feedback-box" id="fb2b"></div>
+        <button class="btn-next" id="next2">次へ：Step 2 チーム開発 →</button>
+      </div>
+      <button class="btn-primary" id="show2">クイズに挑戦する！</button>
+
+      <div class="memo-section">
+        <button class="memo-toggle" data-chid="ch2">📝 メモを残す</button>
+        <div class="memo-body" id="memo_ch2">
+          <textarea class="memo-textarea" id="memoText_ch2" placeholder="練習リポジトリのURLなどをメモ..."></textarea>
+          <button class="memo-save-btn" data-chid="ch2">保存</button>
+          <span class="memo-saved-msg" id="memoSaved_ch2">保存しました ✓</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── CH 3: チーム開発 ─── -->
+    <div class="chapter-card" id="ch3">
+      <div class="chapter-header">
+        <div class="chapter-num">2</div>
+        <div><div class="chapter-title">チーム開発（ブランチ &amp; マージリクエスト）</div>
+        <div class="chapter-sub">本番では必ず使う！mainを守る作業の流れ</div></div>
+      </div>
+
+      <h3>🌿 なぜブランチを使うの？</h3>
+      <p>メインの歴史（<code>main</code>）に直接プッシュすると、<strong>自分のミスがチーム全員に影響</strong>します。ブランチを作って作業し、チェックしてもらってから合流（マージ）させるのが基本です。</p>
+
+      <div class="handson">
+        <div class="handson-title">💻 ハンズオン：ブランチ → 修正 → マージリクエスト</div>
+        <ol class="step-list">
+          <li>ブランチを作って移動する</li>
+        </ol>
+        <div class="code-wrap">
+          <button class="copy-btn">コピー</button>
+          <pre><span class="cm"># feature_自分の名前 というブランチを作って移動</span>
+git checkout -b feature_yamada</pre>
+        </div>
+        <ol class="step-list" style="margin-top:8px;">
+          <li>ファイルの内容を修正して保存・送信する</li>
+        </ol>
+        <div class="code-wrap">
+          <button class="copy-btn">コピー</button>
+          <pre>git add .
+git commit -m "自己紹介を更新"
+git push -u origin feature_yamada</pre>
+        </div>
+        <ol class="step-list" style="margin-top:8px;">
+          <li>ブラウザでGitLabを開き「Create merge request」をクリックしてMRを作成する</li>
+          <li>隣の人とペアになり、お互いのMRを確認してApprove・Mergeする</li>
+        </ol>
+        <div class="warn"><p>⚠️ <code>git push -u origin ブランチ名</code> の <code>-u</code> は最初だけ必要です。2回目以降は <code>git push</code> だけでOK。</p></div>
+      </div>
+
+      <div class="quiz-section" id="q3">
+        <div class="quiz-label">確認クイズ ⑥</div>
+        <div class="quiz-q">GitLabでの「マージリクエスト（MR）」の目的として正しいのは？</div>
+        <div class="options" data-fb="fb3">
+          <button class="opt" data-correct="false">ファイルを削除するための申請</button>
+          <button class="opt" data-correct="false">自分のブランチにあるファイルを全消しする操作</button>
+          <button class="opt" data-correct="true">ブランチの変更をチームにレビューしてもらいmainに合流させる申請</button>
+        </div>
+        <div class="feedback-box" id="fb3"></div>
+        <button class="btn-next" id="next3">次へ：Step 3 毎日のルーティン →</button>
+      </div>
+      <button class="btn-primary" id="show3">クイズに挑戦する！</button>
+
+      <div class="memo-section">
+        <button class="memo-toggle" data-chid="ch3">📝 メモを残す</button>
+        <div class="memo-body" id="memo_ch3">
+          <textarea class="memo-textarea" id="memoText_ch3" placeholder="ブランチ名のルールなどをメモ..."></textarea>
+          <button class="memo-save-btn" data-chid="ch3">保存</button>
+          <span class="memo-saved-msg" id="memoSaved_ch3">保存しました ✓</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── CH 4: 毎日のルーティン ─── -->
+    <div class="chapter-card" id="ch4">
+      <div class="chapter-header">
+        <div class="chapter-num">3</div>
+        <div><div class="chapter-title">毎日のルーティン（pull / commit / push）</div>
+        <div class="chapter-sub">朝と夜の2ステップを体に染み込ませよう</div></div>
+      </div>
+
+      <h3>🌞 朝イチのコマンド（pull）</h3>
+      <p>昨日、チームの他の人が加えた変更を自分のPCに取り込みます。これを怠ると後で<strong>歴史がズレてコンフリクトが発生</strong>します。</p>
+      <div class="code-wrap">
+        <button class="copy-btn">コピー</button>
+        <pre><span class="cm"># 最新の状態をサーバーから取り込む（必ず朝イチに実行）</span>
+git pull origin main</pre>
+      </div>
+
+      <h3>🌛 帰宅前のコマンド（add / commit / push）</h3>
+      <p>今日やった作業をGitLabに保存して帰ります。<strong>キリが良くなくても大丈夫</strong>。途中でも保存しておけばPCが壊れても安心です。</p>
+      <div class="code-wrap">
+        <button class="copy-btn">コピー</button>
+        <pre><span class="cm"># 全変更をカートに入れる</span>
+git add .
+<span class="cm"># 今日の作業内容をセーブ（メッセージは具体的に！）</span>
+git commit -m "〇〇画面のバリデーション修正（途中）"
+<span class="cm"># GitLabへ送信して帰る</span>
+git push</pre>
+      </div>
+
+      <div class="handson">
+        <div class="handson-title">💻 ハンズオン：朝のpullを体験する</div>
+        <p style="color:var(--muted);font-size:.9rem;margin-bottom:10px;">隣の人がマージしたMRが自分のPCに取り込めるか確認しましょう。</p>
+        <div class="code-wrap">
+          <button class="copy-btn">コピー</button>
+          <pre><span class="cm"># mainブランチに移動（作業ブランチにいる場合）</span>
+git checkout main
+<span class="cm"># 最新状態を取り込む</span>
+git pull origin main
+<span class="cm"># フォルダの中に隣の人のファイルが追加されていれば成功！</span></pre>
+        </div>
+      </div>
+
+      <div class="quiz-section" id="q4">
+        <div class="quiz-label">確認クイズ ⑦ ○×問題</div>
+        <div class="quiz-q">朝のpullを忘れると、チームの他の人の変更と自分の変更が衝突し、後で解決が大変になる可能性がある。</div>
+        <div class="options" data-fb="fb4">
+          <button class="opt" data-correct="true">○（正しい）</button>
+          <button class="opt" data-correct="false">×（間違い）</button>
+        </div>
+        <div class="feedback-box" id="fb4"></div>
+        <button class="btn-next" id="next4">次へ：Step 4 複数案件管理 →</button>
+      </div>
+      <button class="btn-primary" id="show4">クイズに挑戦する！</button>
+
+      <div class="memo-section">
+        <button class="memo-toggle" data-chid="ch4">📝 メモを残す</button>
+        <div class="memo-body" id="memo_ch4">
+          <textarea class="memo-textarea" id="memoText_ch4" placeholder="毎日の作業フローをメモ..."></textarea>
+          <button class="memo-save-btn" data-chid="ch4">保存</button>
+          <span class="memo-saved-msg" id="memoSaved_ch4">保存しました ✓</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── CH 5: 複数案件 ─── -->
+    <div class="chapter-card" id="ch5">
+      <div class="chapter-header">
+        <div class="chapter-num">4</div>
+        <div><div class="chapter-title">複数案件の管理（プロジェクトの切り替え）</div>
+        <div class="chapter-sub">A案件もB案件も、実は超シンプルに管理できる</div></div>
+      </div>
+
+      <h3>📂 基本の考え方：案件 = フォルダ</h3>
+      <p><strong>案件ごとにフォルダを分けてクローンする</strong>だけです。それぞれのフォルダは完全に独立しています。A案件の変更がB案件に混ざることは絶対にありません。</p>
+
+      <div class="handson">
+        <div class="handson-title">💻 ハンズオン：2つの案件フォルダを作る</div>
+        <div class="code-wrap">
+          <button class="copy-btn">コピー</button>
+          <pre><span class="cm"># まとめて管理するフォルダに移動</span>
+cd C:\Users\自分の名前\Documents\projects
+
+<span class="cm"># A案件をクローン</span>
+git clone http://gitlab.../project_A.git
+
+<span class="cm"># B案件をクローン</span>
+git clone http://gitlab.../project_B.git
+
+<span class="cm"># これでprojectsフォルダの中身は：</span>
+<span class="cm"># projects/</span>
+<span class="cm">#   ├── project_A/  ← A案件の独立した金庫</span>
+<span class="cm">#   └── project_B/  ← B案件の独立した金庫</span></pre>
+        </div>
+      </div>
+
+      <h3>🔄 プロジェクトの切り替え方</h3>
+      <ul>
+        <li><strong>VS Code を使う場合</strong>：「ファイル」→「フォルダーを開く」で切り替えるだけ</li>
+        <li><strong>ターミナルを使う場合</strong>：<code>cd project_A</code> または <code>cd project_B</code> でフォルダを移動するだけ</li>
+      </ul>
+      <div class="warn"><p>⚠️ 必ずターミナルで<strong>正しいフォルダにいることを確認</strong>してからGitコマンドを実行！<code>git status</code> を打つと今どのリポジトリにいるかがわかります。</p></div>
+
+      <div class="quiz-section" id="q5">
+        <div class="quiz-label">確認クイズ ⑧</div>
+        <div class="quiz-q">A案件とB案件を同時に担当する場合の正しい管理方法は？</div>
+        <div class="options" data-fb="fb5">
+          <button class="opt" data-correct="false">1つのフォルダに両方のファイルをまとめて保存する</button>
+          <button class="opt" data-correct="true">案件ごとに別フォルダとしてクローンし、VS Codeで開くフォルダを切り替える</button>
+          <button class="opt" data-correct="false">GitLabのプロジェクト名でファイルを区別して1つのリポジトリに押し込む</button>
+        </div>
+        <div class="feedback-box" id="fb5"></div>
+        <button class="btn-next" id="next5">次へ：Step 5 トラブル対処 →</button>
+      </div>
+      <button class="btn-primary" id="show5">クイズに挑戦する！</button>
+
+      <div class="memo-section">
+        <button class="memo-toggle" data-chid="ch5">📝 メモを残す</button>
+        <div class="memo-body" id="memo_ch5">
+          <textarea class="memo-textarea" id="memoText_ch5" placeholder="担当案件のURLをここにまとめておくと便利です..."></textarea>
+          <button class="memo-save-btn" data-chid="ch5">保存</button>
+          <span class="memo-saved-msg" id="memoSaved_ch5">保存しました ✓</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── CH 6: トラブル対処 ─── -->
+    <div class="chapter-card" id="ch6">
+      <div class="chapter-header">
+        <div class="chapter-num">5</div>
+        <div><div class="chapter-title">トラブル対処（取り消し &amp; 秘密ファイルの保護）</div>
+        <div class="chapter-sub">ミスしても大丈夫！Git は最強の消しゴムを持っている</div></div>
+      </div>
+
+      <h3>🛡️ 秘密ファイルをGitLabにアップしないために（.gitignore）</h3>
+      <p>パスワード、APIキー、個人情報が書かれたファイルを誤ってGitLabに上げると大事件です。<code>.gitignore</code> にファイル名を書いておくとGitが完全に無視します。</p>
+      <div class="handson">
+        <div class="handson-title">💻 ハンズオン：.gitignore を試す</div>
+        <ol class="step-list">
+          <li><code>secret.txt</code> を作りパスワードっぽい文字を書いて保存</li>
+          <li><code>.gitignore</code> を作り中に <code>secret.txt</code> と1行書いて保存</li>
+          <li><code>git status</code> を実行し、secret.txtが一覧に<strong>出ていないこと</strong>を確認</li>
+        </ol>
+      </div>
+
+      <h3>⏪ 変更前に戻す（git restore）</h3>
+      <p>まだコミットしていない変更を、最後のコミット状態に瞬時に戻します。</p>
+      <div class="code-wrap">
+        <button class="copy-btn">コピー</button>
+        <pre><span class="cm"># 特定ファイルの変更を取り消す（コミット前）</span>
+git restore ファイル名
+
+<span class="cm"># git addしたものをカートから取り出す</span>
+git restore --staged ファイル名</pre>
+      </div>
+
+      <h3>🕐 コミットを取り消す（git reset）</h3>
+      <p><code>--soft</code>オプションなら、ファイルの中身はそのままでコミットの記録だけ消せます。</p>
+      <div class="code-wrap">
+        <button class="copy-btn">コピー</button>
+        <pre><span class="cm"># 1つ前のコミットを取り消す（ファイルはそのまま）</span>
+git reset --soft HEAD~1
+
+<span class="cm"># 過去のセーブデータ一覧を見る（終了はqキー）</span>
+git log --oneline</pre>
+      </div>
+      <div class="note"><p>💡 <code>git log --oneline</code> はコンパクトに履歴が確認できます。コミットIDをメモしておくと、さらに昔に戻ることもできます。</p></div>
+
+      <div class="quiz-section" id="q6">
+        <div class="quiz-label">確認クイズ ⑨</div>
+        <div class="quiz-q">パスワードが書かれたファイルをGitLabに上げないための最善策は？</div>
+        <div class="options" data-fb="fb6">
+          <button class="opt" data-correct="false">ファイル名を「password.txt」にしない</button>
+          <button class="opt" data-correct="true">.gitignore にそのファイル名を記述する</button>
+          <button class="opt" data-correct="false">git push を毎回慎重に確認する</button>
+        </div>
+        <div class="feedback-box" id="fb6"></div>
+
+        <div class="quiz-label" style="margin-top:20px;">確認クイズ ⑩</div>
+        <div class="quiz-q">「ファイルの中身はそのままにして、コミットしたという記録だけを取り消す」コマンドはどれ？</div>
+        <div class="options" data-fb="fb6b">
+          <button class="opt" data-correct="false">git restore ファイル名</button>
+          <button class="opt" data-correct="true">git reset --soft HEAD~1</button>
+          <button class="opt" data-correct="false">git pull origin main</button>
+        </div>
+        <div class="feedback-box" id="fb6b"></div>
+        <button class="btn-next" id="next6">次へ：チートシート →</button>
+      </div>
+      <button class="btn-primary" id="show6">クイズに挑戦する！</button>
+
+      <div class="memo-section">
+        <button class="memo-toggle" data-chid="ch6">📝 メモを残す</button>
+        <div class="memo-body" id="memo_ch6">
+          <textarea class="memo-textarea" id="memoText_ch6" placeholder="よくやらかすミスのパターンをメモ..."></textarea>
+          <button class="memo-save-btn" data-chid="ch6">保存</button>
+          <span class="memo-saved-msg" id="memoSaved_ch6">保存しました ✓</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── CH 7: チートシート ─── -->
+    <div class="chapter-card" id="ch7">
+      <div class="chapter-header">
+        <div class="chapter-num">📋</div>
+        <div><div class="chapter-title">コマンドチートシート（まとめ）</div>
+        <div class="chapter-sub">迷ったときはここを見返そう！印刷もできます</div></div>
+      </div>
+
+      <div class="cheat-grid">
+        <div class="cheat-card">
+          <div class="cheat-card-title">🌞 毎朝のルーティン</div>
+          <div class="cheat-row"><span class="cheat-cmd">git pull origin main</span><span class="cheat-desc">最新を取り込む（必須）</span></div>
+        </div>
+        <div class="cheat-card">
+          <div class="cheat-card-title">💾 保存して送信（基本の3コマンド）</div>
+          <div class="cheat-row"><span class="cheat-cmd">git add .</span><span class="cheat-desc">全変更をカートに入れる</span></div>
+          <div class="cheat-row"><span class="cheat-cmd">git commit -m "…"</span><span class="cheat-desc">セーブ（履歴に記録）</span></div>
+          <div class="cheat-row"><span class="cheat-cmd">git push</span><span class="cheat-desc">GitLabへ送信</span></div>
+        </div>
+        <div class="cheat-card">
+          <div class="cheat-card-title">🌿 ブランチ操作</div>
+          <div class="cheat-row"><span class="cheat-cmd">git checkout -b 名前</span><span class="cheat-desc">新しいブランチを作って移動</span></div>
+          <div class="cheat-row"><span class="cheat-cmd">git checkout main</span><span class="cheat-desc">mainブランチに戻る</span></div>
+          <div class="cheat-row"><span class="cheat-cmd">git branch</span><span class="cheat-desc">今いるブランチを確認</span></div>
+        </div>
+        <div class="cheat-card">
+          <div class="cheat-card-title">🔍 状況確認</div>
+          <div class="cheat-row"><span class="cheat-cmd">git status</span><span class="cheat-desc">今の状態を確認（迷ったらまずこれ）</span></div>
+          <div class="cheat-row"><span class="cheat-cmd">git log --oneline</span><span class="cheat-desc">過去の履歴を一覧表示（qで終了）</span></div>
+          <div class="cheat-row"><span class="cheat-cmd">git diff</span><span class="cheat-desc">変更の差分を確認</span></div>
+        </div>
+        <div class="cheat-card">
+          <div class="cheat-card-title">⏪ やり直し・取り消し</div>
+          <div class="cheat-row"><span class="cheat-cmd">git restore ファイル</span><span class="cheat-desc">ファイルの変更を取り消す</span></div>
+          <div class="cheat-row"><span class="cheat-cmd">git restore --staged ファイル</span><span class="cheat-desc">addを取り消す</span></div>
+          <div class="cheat-row"><span class="cheat-cmd">git reset --soft HEAD~1</span><span class="cheat-desc">直前のコミットを取り消す</span></div>
+        </div>
+        <div class="cheat-card">
+          <div class="cheat-card-title">🔧 初期設定</div>
+          <div class="cheat-row"><span class="cheat-cmd">git init</span><span class="cheat-desc">フォルダをGit管理下に置く</span></div>
+          <div class="cheat-row"><span class="cheat-cmd">git clone URL</span><span class="cheat-desc">リポジトリをコピー（初回のみ）</span></div>
+          <div class="cheat-row"><span class="cheat-cmd">git config --list</span><span class="cheat-desc">設定の確認</span></div>
+        </div>
+      </div>
+
+      <button class="print-btn" onclick="window.print()">🖨️ チートシートを印刷する</button>
+
+      <div class="memo-section" style="margin-top:16px;">
+        <button class="memo-toggle" data-chid="ch7">📝 メモを残す</button>
+        <div class="memo-body" id="memo_ch7">
+          <textarea class="memo-textarea" id="memoText_ch7" placeholder="よく使うコマンドや、自分なりのメモを追記..."></textarea>
+          <button class="memo-save-btn" data-chid="ch7">保存</button>
+          <span class="memo-saved-msg" id="memoSaved_ch7">保存しました ✓</span>
+        </div>
+      </div>
+
+      <div class="quiz-section" id="q7">
+        <div class="quiz-label">🏆 最終確認クイズ ⑪</div>
+        <div class="quiz-q">今日の作業を終えて退勤する際の正しいコマンドの流れは？</div>
+        <div class="options" data-fb="fb7">
+          <button class="opt" data-correct="true">git add . → git commit -m "…" → git push</button>
+          <button class="opt" data-correct="false">git pull → git commit -m "…" → git add .</button>
+          <button class="opt" data-correct="false">git push → git add . → git commit -m "…"</button>
+        </div>
+        <div class="feedback-box" id="fb7"></div>
+
+        <div class="quiz-label" style="margin-top:20px;">🏆 最終確認クイズ ⑫ ○×問題</div>
+        <div class="quiz-q">git clone はプロジェクトへの参加初日に一度実行すればよい。その後の最新取得は git pull で行う。</div>
+        <div class="options" data-fb="fb7b">
+          <button class="opt" data-correct="true">○（正しい）</button>
+          <button class="opt" data-correct="false">×（間違い）</button>
+        </div>
+        <div class="feedback-box" id="fb7b"></div>
+        <button class="btn-next" id="next7" style="background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;border:none;padding:11px 24px;border-radius:10px;font-size:.95rem;font-weight:700;cursor:pointer;margin-top:12px;">🏆 研修完了！</button>
+      </div>
+      <button class="btn-primary" id="show7">最終クイズに挑戦する！</button>
+    </div>
+
+    <!-- ─── COMPLETE ─── -->
+    <div class="chapter-card" id="ch8">
+      <div class="complete-screen">
+        <div class="trophy">🏆</div>
+        <h2>全ハンズオン完了！</h2>
+        <p style="font-size:1.05rem;color:var(--text);margin-top:10px;">本当にお疲れ様でした！<br>Git &amp; GitLab の基礎を完全制覇しました。</p>
+        <div class="complete-grid">
+          <div class="complete-card"><div class="icon">📦</div><div class="label">clone / add<br>commit / push</div></div>
+          <div class="complete-card"><div class="icon">🌿</div><div class="label">ブランチ<br>マージリクエスト</div></div>
+          <div class="complete-card"><div class="icon">⏪</div><div class="label">restore<br>reset</div></div>
+          <div class="complete-card"><div class="icon">🛡️</div><div class="label">.gitignore<br>セキュリティ</div></div>
+        </div>
+        <p style="margin-top:20px;color:var(--muted);">明日からのチーム開発で、自信を持って活躍してください！</p>
+        <p id="finalScore" style="margin-top:10px;color:var(--accent);font-size:1.1rem;font-weight:700;"></p>
+        <button class="restart-btn" onclick="restartAll()">🔄 最初からやり直す</button>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// ─── CONSTANTS ───
+const CHAPTER_ORDER = ['ch0','ch1','ch_new','ch2','ch3','ch4','ch5','ch6','ch7','ch8'];
+const TOTAL_CONTENT_CHAPTERS = 8; // ch0〜ch7 (ch8はcomplete画面)
+
+// ─── STATE ───
+let completedChapters = new Set(JSON.parse(localStorage.getItem('git_done') || '[]'));
+let quizScores = JSON.parse(localStorage.getItem('git_quiz') || '{"correct":0,"total":0}');
+let memos = JSON.parse(localStorage.getItem('git_memos') || '{}');
+
+function saveState() {
+  localStorage.setItem('git_done', JSON.stringify([...completedChapters]));
+  localStorage.setItem('git_quiz', JSON.stringify(quizScores));
+  localStorage.setItem('git_memos', JSON.stringify(memos));
+}
+
+// ─── CHAPTER NAVIGATION ───
+function showChapter(chId) {
+  CHAPTER_ORDER.forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.classList.remove('visible');
+  });
+  const card = document.getElementById(chId);
+  if(card) {
+    card.classList.add('visible');
+    card.scrollIntoView({behavior:'smooth', block:'start'});
+  }
+  document.querySelectorAll('.sidebar-item').forEach(a => {
+    a.classList.toggle('active', a.dataset.chid === chId);
+  });
+  updateProgress();
+}
+
+document.querySelectorAll('.sidebar-item').forEach(a => {
+  a.addEventListener('click', () => showChapter(a.dataset.chid));
+});
+
+// ─── PROGRESS ───
+function updateProgress() {
+  const done = completedChapters.size;
+  const pct = Math.round((done / TOTAL_CONTENT_CHAPTERS) * 100);
+  document.getElementById('topBar').style.width = pct + '%';
+  document.getElementById('sidebarFill').style.width = pct + '%';
+  document.getElementById('sidebarPct').textContent = done + ' / ' + TOTAL_CONTENT_CHAPTERS;
+  document.getElementById('statProgress').textContent = pct + '%';
+
+  // sidebar done marks
+  CHAPTER_ORDER.forEach(id => {
+    const link = document.querySelector(`.sidebar-item[data-chid="${id}"]`);
+    if(link) link.classList.toggle('done', completedChapters.has(id));
+  });
+
+  // score pill
+  if(quizScores.total > 0) {
+    const scorePct = Math.round((quizScores.correct / quizScores.total) * 100);
+    const pill = document.getElementById('scorePill');
+    pill.classList.add('visible');
+    document.getElementById('scorePillVal').textContent = scorePct + '%（' + quizScores.correct + '/' + quizScores.total + '問）';
+    document.getElementById('statScore').textContent = scorePct + '%';
+  }
+}
+
+// ─── SHOW QUIZ ───
+const showBtnMap = [
+  ['show0','q0'],['show1','q1'],['show_new','q_new'],
+  ['show2','q2'],['show3','q3'],['show4','q4'],
+  ['show5','q5'],['show6','q6'],['show7','q7']
+];
+showBtnMap.forEach(([btnId, quizId]) => {
+  const btn = document.getElementById(btnId);
+  if(!btn) return;
+  btn.addEventListener('click', () => {
+    const quiz = document.getElementById(quizId);
+    if(quiz) { quiz.classList.add('visible'); quiz.scrollIntoView({behavior:'smooth'}); }
+    btn.style.display = 'none';
+  });
+});
+
+// ─── NEXT CHAPTER ───
+const nextMap = [
+  ['next0','ch1','ch0'],
+  ['next1','ch_new','ch1'],
+  ['next_new','ch2','ch_new'],
+  ['next2','ch3','ch2'],
+  ['next3','ch4','ch3'],
+  ['next4','ch5','ch4'],
+  ['next5','ch6','ch5'],
+  ['next6','ch7','ch6'],
+  ['next7','ch8','ch7'],
+];
+nextMap.forEach(([btnId, nextId, doneId]) => {
+  const btn = document.getElementById(btnId);
+  if(!btn) return;
+  btn.addEventListener('click', () => {
+    completedChapters.add(doneId);
+    saveState();
+    if(nextId === 'ch8') {
+      const scorePct = quizScores.total > 0 ? Math.round((quizScores.correct / quizScores.total) * 100) : 0;
+      document.getElementById('finalScore').textContent = '🎯 クイズ正解率：' + scorePct + '%（' + quizScores.correct + '/' + quizScores.total + '問正解）';
+    }
+    showChapter(nextId);
+  });
+});
+
+// ─── QUIZ ENGINE ───
+const quizExplanations = {
+  'fb0':  'commitはPC内にセーブする操作です。サーバーへの送信はpushです。',
+  'fb0b': 'GitLabは社内ネットワーク内に設置でき、外部に出せない環境でも使えるのが強みです。',
+  'fb1':  'コミット（セーブ）の記録に名前を残すためuser.nameとuser.emailの設定は必須です。',
+  'fb_new':  'git initでフォルダをGitリポジトリとして初期化します。',
+  'fb_new2': 'READMEを自動生成するとリモートに最初のコミットが存在し、ローカルと歴史が衝突してpushが失敗します。',
+  'fb2':  'add → commit → pushの順番が基本です。カートに入れてからセーブして送信。',
+  'fb2b': 'cloneは最初の1回だけ！毎日の取り込みはpullです。',
+  'fb3':  'MRはブランチの変更をチームにレビューしてもらいmainへ合流させるための申請です。',
+  'fb4':  '朝のpullを怠ると後でコンフリクト（衝突）が起きて解決が大変になります。',
+  'fb5':  '案件ごとに独立したフォルダとしてcloneするのが最善です。',
+  'fb6':  '.gitignoreに書くとGitが完全に無視します。',
+  'fb6b': '--softオプションを使うとファイルの内容を変えずにコミット記録だけ取り消せます。',
+  'fb7':  'add → commit → pushが帰宅前の正しい順番です。',
+  'fb7b': 'cloneは初回のみ。毎日の取得はpullです。',
+};
+
+function buildAllQuizzes() {
+  document.querySelectorAll('.options').forEach(optGroup => {
+    const fbId = optGroup.dataset.fb;
+    const fb = fbId ? document.getElementById(fbId) : null;
+    const opts = optGroup.querySelectorAll('.opt');
+
+    opts.forEach(opt => {
+      opt.addEventListener('click', () => {
+        if(optGroup.dataset.answered) return;
+        const isCorrect = opt.dataset.correct === 'true';
+        optGroup.dataset.answered = '1';
+        opts.forEach(o => o.disabled = true);
+        quizScores.total++;
+
+        if(isCorrect) {
+          opt.classList.add('correct');
+          quizScores.correct++;
+          if(fb) {
+            fb.className = 'feedback-box ok';
+            fb.innerHTML = '🎉 <strong>正解！</strong>' + (quizExplanations[fbId] ? '<br><span style="font-size:.88rem;">' + quizExplanations[fbId] + '</span>' : '');
+          }
+        } else {
+          opt.classList.add('wrong');
+          // highlight correct answer
+          opts.forEach(o => { if(o.dataset.correct === 'true') o.classList.add('correct'); });
+          if(fb) {
+            fb.className = 'feedback-box ng';
+            fb.innerHTML = '❌ <strong>不正解</strong>（正解を確認しよう）' + (quizExplanations[fbId] ? '<br><span style="font-size:.88rem;">' + quizExplanations[fbId] + '</span>' : '');
+          }
+        }
+
+        saveState();
+        updateProgress();
+
+        // Show next btn if all groups in this quiz-section are answered
+        const quizSection = optGroup.closest('.quiz-section');
+        if(quizSection) {
+          const allGroups = quizSection.querySelectorAll('.options');
+          const allDone = [...allGroups].every(g => g.dataset.answered);
+          if(allDone) {
+            const nextBtn = quizSection.querySelector('.btn-next');
+            if(nextBtn) { nextBtn.style.display = 'block'; setTimeout(() => nextBtn.scrollIntoView({behavior:'smooth'}), 300); }
+          }
+        }
+      });
+    });
+  });
+}
+buildAllQuizzes();
+
+// ─── COPY BUTTONS ───
+document.querySelectorAll('.copy-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const pre = btn.nextElementSibling;
+    // Remove comment lines from copied text
+    const lines = pre.innerText.split('\n').filter(l => !l.trim().startsWith('#'));
+    const text = lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'コピー済み ✓';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'コピー'; btn.classList.remove('copied'); }, 2000);
+    });
+  });
+});
+
+// ─── MEMO SYSTEM ───
+function loadMemos() {
+  Object.keys(memos).forEach(chId => {
+    const ta = document.getElementById('memoText_' + chId);
+    if(ta) ta.value = memos[chId] || '';
+  });
+}
+
+document.querySelectorAll('.memo-toggle').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const chId = btn.dataset.chid;
+    const body = document.getElementById('memo_' + chId);
+    if(body) body.classList.toggle('visible');
+  });
+});
+
+document.querySelectorAll('.memo-save-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const chId = btn.dataset.chid;
+    const ta = document.getElementById('memoText_' + chId);
+    if(ta) {
+      memos[chId] = ta.value;
+      saveState();
+      const msg = document.getElementById('memoSaved_' + chId);
+      if(msg) { msg.style.opacity = '1'; setTimeout(() => { msg.style.opacity = '0'; }, 2000); }
+    }
+  });
+});
+loadMemos();
+
+// ─── SEARCH ───
+const searchIndex = [
+  {chId:'ch0', chap:'はじめに・基本用語', text:'リポジトリ クローン コミット プッシュ プル ブランチ マージリクエスト MR GitLab GitHub 用語 仕組み'},
+  {chId:'ch1', chap:'Step 0：環境構築', text:'git config user.name user.email インストール プロキシ proxy Git Bash 初期設定 git config --list'},
+  {chId:'ch_new', chap:'Step 0.5：新規プロジェクト', text:'git init git remote add origin git push -u origin main 新規 初回 立ち上げ README 失敗'},
+  {chId:'ch2', chap:'Step 1：保存と共有', text:'git clone git add git commit git push git status add commit push clone 保存 送信 アップロード'},
+  {chId:'ch3', chap:'Step 2：チーム開発', text:'git checkout -b ブランチ マージリクエスト MR レビュー merge request feature pull request'},
+  {chId:'ch4', chap:'Step 3：毎日のルーティン', text:'git pull 毎朝 朝 帰宅 ルーティン daily pull push commit 最新'},
+  {chId:'ch5', chap:'Step 4：複数案件管理', text:'複数 案件 プロジェクト 切り替え フォルダ clone cd VS Code'},
+  {chId:'ch6', chap:'Step 5：トラブル対処', text:'git restore git reset --soft HEAD~1 gitignore 取り消し 戻す 秘密 パスワード コンフリクト ミス'},
+  {chId:'ch7', chap:'チートシート', text:'git diff git branch チートシート まとめ 一覧 印刷 全コマンド'},
+];
+
+const searchInput = document.getElementById('searchInput');
+const searchResults = document.getElementById('searchResults');
+
+searchInput.addEventListener('input', () => {
+  const q = searchInput.value.trim();
+  if(!q) { searchResults.classList.remove('visible'); return; }
+  const hits = searchIndex.filter(item =>
+    item.text.toLowerCase().includes(q.toLowerCase()) ||
+    item.chap.includes(q)
+  );
+  if(!hits.length) {
+    searchResults.innerHTML = '<div class="search-result-item"><span class="search-result-text">「' + q + '」に一致する内容が見つかりませんでした</span></div>';
+  } else {
+    searchResults.innerHTML = hits.map(h => {
+      const hl = h.chap.replace(new RegExp(q, 'gi'), m => '<mark>' + m + '</mark>');
+      return `<div class="search-result-item" onclick="showChapter('${h.chId}');searchInput.value='';searchResults.classList.remove('visible');">
+        <span class="search-result-chap">${h.chap.split('：')[0]}</span>
+        <span class="search-result-text">${h.chap}</span>
+      </div>`;
+    }).join('');
+  }
+  searchResults.classList.add('visible');
+});
+
+document.addEventListener('click', e => {
+  if(!e.target.closest('.search-bar-wrap')) searchResults.classList.remove('visible');
+});
+
+// ─── RESTORE PROGRESS ON LOAD ───
+function restoreProgress() {
+  completedChapters.forEach(chId => {
+    const link = document.querySelector(`.sidebar-item[data-chid="${chId}"]`);
+    if(link) link.classList.add('done');
+  });
+  updateProgress();
+}
+
+function restartAll() {
+  if(!confirm('進捗をすべてリセットしますか？（メモは残ります）')) return;
+  completedChapters.clear();
+  quizScores = {correct:0, total:0};
+  // Reset all quiz UI
+  document.querySelectorAll('.options').forEach(g => {
+    delete g.dataset.answered;
+    g.querySelectorAll('.opt').forEach(o => {
+      o.disabled = false;
+      o.classList.remove('correct','wrong');
+    });
+  });
+  document.querySelectorAll('.feedback-box').forEach(fb => { fb.className = 'feedback-box'; fb.innerHTML = ''; });
+  document.querySelectorAll('.btn-next').forEach(b => b.style.display = 'none');
+  document.querySelectorAll('.quiz-section').forEach(q => q.classList.remove('visible'));
+  document.querySelectorAll('.btn-primary').forEach(b => b.style.display = '');
+  saveState();
+  showChapter('ch0');
+  updateProgress();
+}
+
+restoreProgress();
+</script>
+</body>
+</html>
